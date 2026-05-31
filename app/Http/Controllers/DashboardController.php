@@ -36,7 +36,10 @@ class DashboardController extends Controller
         $recentPurchases = Purchase::with('product', 'trip')->orderByDesc('purchase_date')->limit(10)->get();
         $topProducts     = Product::all()->sortByDesc(fn($p) => $p->totalNetProfit())->take(5);
 
-        $monthlyRevenue  = Sale::selectRaw("strftime('%Y-%m', sale_date) as month, SUM(quantity * unit_price_bdt) as revenue")
+        $dateFormat = config('database.default') === 'sqlite'
+            ? "strftime('%Y-%m', sale_date)"
+            : "DATE_FORMAT(sale_date, '%Y-%m')";
+        $monthlyRevenue  = Sale::selectRaw("$dateFormat as month, SUM(quantity * unit_price_bdt) as revenue")
             ->groupBy('month')->orderBy('month')->limit(6)->pluck('revenue', 'month');
 
         return view('dashboard', compact(
