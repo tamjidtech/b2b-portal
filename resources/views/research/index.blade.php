@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Product Research Board</h2>
-            <span class="text-sm text-gray-500">{{ \App\Models\Product::where('status','research')->count() }} products tracked</span>
+            <span class="text-sm text-gray-500">{{ $stats['total'] }} products tracked</span>
         </div>
     </x-slot>
 
@@ -21,7 +21,12 @@
                         window.open(url, '_blank');
                     }
                 }
-             }">
+             }"
+             @quick-import-use.window="
+                addOpen = true;
+                if ($event.detail.pipeline) pipeline = $event.detail.pipeline;
+                if ($event.detail.name)     productName = $event.detail.name;
+             ">
 
             {{-- ======================================================
                  FLASH / ERROR MESSAGES
@@ -47,6 +52,106 @@
                     </ul>
                 </div>
             @endif
+
+            {{-- ======================================================
+                 STATS BAR
+            ====================================================== --}}
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-white rounded-lg border border-gray-100 p-3">
+                    <p class="text-xs text-gray-500">Total Tracked</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-0.5">{{ $stats['total'] }}</p>
+                </div>
+                <div class="bg-white rounded-lg border border-gray-100 p-3">
+                    <p class="text-xs text-gray-500">With Image</p>
+                    <p class="text-2xl font-bold text-indigo-600 mt-0.5">{{ $stats['with_image'] }}<span class="text-xs text-gray-400 font-normal">/{{ $stats['total'] }}</span></p>
+                </div>
+                <div class="bg-white rounded-lg border border-gray-100 p-3">
+                    <p class="text-xs text-gray-500">High Rated (4★+)</p>
+                    <p class="text-2xl font-bold text-yellow-500 mt-0.5">{{ $stats['high_rated'] }}</p>
+                </div>
+                <div class="bg-white rounded-lg border border-gray-100 p-3">
+                    <p class="text-xs text-gray-500">Low Risk</p>
+                    <p class="text-2xl font-bold text-green-600 mt-0.5">{{ $stats['low_risk'] }}</p>
+                </div>
+            </div>
+
+            {{-- ======================================================
+                 QUICK IMPORT FROM URL
+            ====================================================== --}}
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-5"
+                 x-data="quickImport()">
+                <div class="flex items-start gap-4">
+                    <div class="bg-indigo-600 text-white rounded-lg p-2 shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-gray-900 text-base">Quick Import from URL</h3>
+                        <p class="text-xs text-gray-600 mt-0.5">Paste an Amazon.sa, Daraz, or Noon product URL — we'll auto-extract the name, image, and price.</p>
+
+                        <div class="flex gap-2 mt-3">
+                            <input type="url" x-model="url"
+                                @keydown.enter.prevent="preview()"
+                                placeholder="https://www.amazon.sa/-/en/dp/..."
+                                class="flex-1 border-indigo-200 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <button type="button" @click="preview()" :disabled="loading"
+                                class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white px-5 py-2 rounded-md text-sm font-semibold whitespace-nowrap flex items-center gap-1.5">
+                                <svg x-show="!loading" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                <svg x-show="loading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                </svg>
+                                <span x-text="loading ? 'Fetching…' : 'Import'"></span>
+                            </button>
+                        </div>
+
+                        {{-- Preview result --}}
+                        <div x-show="result" x-cloak class="mt-4 bg-white rounded-lg border border-gray-200 p-4">
+                            <div x-show="result && result.error" class="text-red-700 text-sm bg-red-50 border border-red-200 rounded p-3" x-text="result?.error"></div>
+
+                            <div x-show="result && !result.error" class="space-y-3">
+                                <div class="flex gap-4">
+                                    <div class="w-28 h-28 shrink-0 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
+                                        <img x-show="result?.image" :src="result?.image" class="max-h-full max-w-full object-contain p-1">
+                                        <span x-show="!result?.image" class="text-gray-300 text-xs">No image</span>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-semibold text-gray-900 text-sm leading-snug" x-text="result?.name || '(no name extracted)'"></p>
+                                        <div class="flex flex-wrap gap-2 mt-2 text-xs">
+                                            <span x-show="result?.source" class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full" x-text="'Source: ' + result?.source"></span>
+                                            <span x-show="result?.pipeline" class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full"
+                                                x-text="result?.pipeline === 'SA_TO_BD' ? 'SA → BD' : 'BD → SA'"></span>
+                                            <span x-show="result?.category" class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full" x-text="result?.category"></span>
+                                        </div>
+                                        <div x-show="result?.price_local" class="mt-2 text-sm">
+                                            <span class="text-gray-500">Price:</span>
+                                            <span class="font-semibold text-gray-800" x-text="result?.price_local + ' ' + (result?.currency || '')"></span>
+                                            <span x-show="result?.price_bdt && result?.currency !== 'BDT'" class="text-gray-400 text-xs">
+                                                (≈ ৳<span x-text="Number(result?.price_bdt).toLocaleString()"></span>)
+                                            </span>
+                                        </div>
+                                        <div x-show="result?.duplicate" class="mt-2 text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded p-2">
+                                            ⚠ Looks like a duplicate of <strong x-text="result?.duplicate?.name"></strong>
+                                            (<span x-text="result?.duplicate?.status"></span>)
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 pt-2 border-t border-gray-100">
+                                    <button type="button" @click="useThisData()"
+                                        :disabled="result?.duplicate"
+                                        class="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white text-xs font-semibold px-4 py-2 rounded-md">
+                                        ✓ Use this data → Pre-fill form
+                                    </button>
+                                    <button type="button" @click="clear()" class="text-gray-500 hover:text-gray-700 text-xs px-3">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {{-- ======================================================
                  ADD NEW PRODUCT PANEL
@@ -296,13 +401,47 @@
                         <option value="3.5" @selected(request('min_rating') == '3.5')>★ 3.5+</option>
                     </select>
                 </div>
-                <div class="mt-3 flex gap-2">
+                <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <select name="sort" class="border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="rating_desc"  @selected($sort==='rating_desc')>★ Sort: Highest Rating</option>
+                        <option value="rating_asc"   @selected($sort==='rating_asc')>★ Sort: Lowest Rating</option>
+                        <option value="profit_desc"  @selected($sort==='profit_desc')>৳ Sort: Highest Profit</option>
+                        <option value="profit_asc"   @selected($sort==='profit_asc')>৳ Sort: Lowest Profit</option>
+                        <option value="margin_desc"  @selected($sort==='margin_desc')>% Sort: Highest Margin</option>
+                        <option value="newest"       @selected($sort==='newest')>↓ Sort: Newest First</option>
+                        <option value="oldest"       @selected($sort==='oldest')>↑ Sort: Oldest First</option>
+                        <option value="name_asc"     @selected($sort==='name_asc')>A–Z Sort: Name</option>
+                    </select>
+                    <label class="flex items-center gap-2 text-sm text-gray-600 px-3 py-1.5 border border-gray-200 rounded-md bg-gray-50">
+                        <input type="checkbox" name="no_image" value="1" @checked(request('no_image'))
+                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        Only products without images
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-gray-600 px-3 py-1.5 border border-gray-200 rounded-md bg-gray-50">
+                        <input type="checkbox" name="has_image" value="1" @checked(request('has_image'))
+                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        Only products with images
+                    </label>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2 items-center">
                     <button type="submit" class="bg-gray-800 text-white px-4 py-1.5 rounded-md text-sm hover:bg-gray-700">Apply Filters</button>
                     <a href="{{ route('research.index') }}" class="border border-gray-300 text-gray-600 px-4 py-1.5 rounded-md text-sm hover:bg-gray-50">Clear</a>
                     <span class="ml-auto text-xs text-gray-400 self-center">
                         {{ $products->total() }} product{{ $products->total() !== 1 ? 's' : '' }} found
                     </span>
                 </div>
+            </form>
+
+            {{-- Bulk action bar --}}
+            <form method="POST" action="{{ route('research.bulk-fetch-images') }}"
+                  class="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm">
+                @csrf
+                <span class="text-amber-900">⚡ Auto-fetch images for products that don't have one yet (up to 30 per click).</span>
+                <button type="submit"
+                    onclick="this.innerHTML='⏳ Fetching… please wait'; this.disabled=true; this.form.submit();"
+                    class="ml-auto bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-4 py-1.5 rounded-md whitespace-nowrap">
+                    Bulk Fetch Images
+                </button>
             </form>
 
             {{-- ======================================================
@@ -465,6 +604,15 @@
                                     class="border border-gray-200 text-gray-500 text-xs px-3 py-1.5 rounded-md hover:bg-gray-50">
                                     Edit
                                 </a>
+                                <form method="POST" action="{{ route('research.destroy', $product) }}">
+                                    @csrf @method('DELETE')
+                                    <button type="submit"
+                                        onclick="return confirm('Delete \'{{ addslashes($product->name) }}\' from research? This cannot be undone.')"
+                                        title="Delete from research"
+                                        class="border border-red-200 text-red-500 hover:bg-red-50 text-xs px-2.5 py-1.5 rounded-md">
+                                        🗑
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     @endforeach
@@ -475,4 +623,78 @@
 
         </div>
     </div>
+
+    <script>
+        function quickImport() {
+            return {
+                url: '',
+                loading: false,
+                result: null,
+                async preview() {
+                    if (!this.url.trim()) return;
+                    this.loading = true;
+                    this.result = null;
+                    try {
+                        const res = await fetch('{{ route('research.import-preview') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({ url: this.url.trim() }),
+                        });
+                        this.result = await res.json();
+                        if (!res.ok && !this.result.error) {
+                            this.result.error = 'Request failed (HTTP ' + res.status + ').';
+                        }
+                    } catch (e) {
+                        this.result = { error: 'Network error: ' + e.message };
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                clear() { this.url = ''; this.result = null; },
+                useThisData() {
+                    if (!this.result || this.result.error) return;
+                    // Notify outer x-data scope (it listens via @quick-import-use.window)
+                    window.dispatchEvent(new CustomEvent('quick-import-use', {
+                        detail: {
+                            pipeline: this.result.pipeline,
+                            name: this.result.name,
+                        }
+                    }));
+                    const url = this.url.trim();
+                    const result = this.result;
+                    setTimeout(() => {
+                        const form = document.querySelector('form[action="{{ route('research.store') }}"]');
+                        if (!form) return;
+                        const set = (name, val) => {
+                            if (val === null || val === undefined || val === '') return;
+                            const el = form.querySelector('[name="' + name + '"]');
+                            if (el) {
+                                el.value = val;
+                                el.dispatchEvent(new Event('input', { bubbles: true }));
+                                el.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        };
+                        set('name',          result.name);
+                        set('category',      result.category);
+                        set('url',           url);
+                        set('image_url',     result.image);
+                        set('source_market', result.pipeline === 'SA_TO_BD' ? 'Amazon.sa' : 'Daraz BD');
+                        if (result.price_bdt) {
+                            set('estimated_buy_price_bdt',  Math.round(result.price_bdt));
+                            set('estimated_sell_price_bdt', Math.round(result.price_bdt * 1.4));
+                        }
+                        // Switch image tab to "Paste URL" so the image_url field is visible
+                        form.querySelectorAll('button[type="button"]').forEach(b => {
+                            if (b.textContent.trim() === 'Paste URL') b.click();
+                        });
+                        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 250);
+                },
+            }
+        }
+    </script>
 </x-app-layout>

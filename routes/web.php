@@ -22,7 +22,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/research',                         [ResearchController::class, 'index'])->name('research.index');
     Route::post('/research',                        [ResearchController::class, 'store'])->name('research.store');
+    Route::post('/research/import-preview',         [ResearchController::class, 'importPreview'])->name('research.import-preview');
+    Route::post('/research/bulk-fetch-images',      [ResearchController::class, 'bulkFetchImages'])->name('research.bulk-fetch-images');
     Route::post('/research/{product}/activate',     [ResearchController::class, 'activate'])->name('research.activate');
+    Route::delete('/research/{product}',            [ResearchController::class, 'destroy'])->name('research.destroy');
     Route::post('/products/{product}/fetch-image',  [ImageFetchController::class, 'fetch'])->name('products.fetch-image');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
