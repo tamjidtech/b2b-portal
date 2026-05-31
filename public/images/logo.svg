@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <!-- Background circle -->
+  <circle cx="120" cy="120" r="120" fill="#4F46E5"/>
+
+  <!-- Inner lighter ring -->
+  <circle cx="120" cy="120" r="100" fill="#4338CA" opacity="0.5"/>
+
+  <!-- SA text left block -->
+  <rect x="18" y="88" width="76" height="64" rx="10" fill="white" opacity="0.15"/>
+  <text x="56" y="130" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="800" font-size="30" fill="white" letter-spacing="-1">SA</text>
+
+  <!-- BD text right block -->
+  <rect x="146" y="88" width="76" height="64" rx="10" fill="white" opacity="0.15"/>
+  <text x="184" y="130" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="800" font-size="30" fill="white" letter-spacing="-1">BD</text>
+
+  <!-- Left arrow -->
+  <polygon points="100,105 116,112 100,119" fill="#A5B4FC"/>
+  <!-- Right arrow -->
+  <polygon points="140,105 124,112 140,119" fill="#A5B4FC"/>
+  <!-- Arrow stem -->
+  <rect x="100" y="109" width="40" height="6" rx="3" fill="#A5B4FC"/>
+
+  <!-- Bottom label -->
+  <text x="120" y="175" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-weight="600" font-size="13" fill="white" opacity="0.85" letter-spacing="2">TRADE PORTAL</text>
+
+  <!-- Top accent line -->
+  <rect x="85" y="68" width="70" height="3" rx="1.5" fill="#818CF8" opacity="0.7"/>
+</svg>
