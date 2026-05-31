@@ -22,5 +22,11 @@ class DatabaseSeeder extends Seeder
             'email'    => 'admin@flydeskpro.com',
             'password' => \Illuminate\Support\Facades\Hash::make('password'),
         ]);
+
+        User::create([
+            'name'     => 'Arman',
+            'email'    => 'arman@flydeskpro.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('password'),
+        ]);
     }
 }
